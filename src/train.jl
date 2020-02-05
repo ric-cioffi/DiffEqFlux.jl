@@ -11,8 +11,8 @@ DiffEqFlux.sciml_train!(loss, params, data, opt,
 The callback can call `Flux.stop()` to interrupt the training loop.
 Multiple optimisers and callbacks can be passed to `opt` and `cb` as arrays.
 """
-function sciml_train!(loss, _θ, opt; cb = (args...) -> (), maxiters)
-  θ = copy(_θ)
+function sciml_train!(loss, θ, opt; cb = (args...) -> (), maxiters)
+  _θ = copy(θ)
   ps = Flux.params(θ)
   data = Iterators.repeated((), maxiters)
   t0 = time()
@@ -76,7 +76,8 @@ function sciml_train!(loss, θ, opt::Optim.AbstractOptimizer;
     g .= Flux.Zygote.gradient(optim_loss,θ)[1]
     nothing
   end
-  optimize(optim_loss, optim_loss_gradient!, θ, opt,
+  res = optimize(optim_loss, optim_loss_gradient!, θ, opt,
            Optim.Options(extended_trace=true,callback = _cb,
                          f_calls_limit = maxiters))
+  θ .= res.minimizer
 end
