@@ -80,4 +80,5 @@ function sciml_train!(loss, θ, opt::Optim.AbstractOptimizer;
            Optim.Options(extended_trace=true,callback = _cb,
                          f_calls_limit = maxiters, f_tol = f_tol))
   θ .= res.minimizer
+  return res
 end
