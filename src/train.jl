@@ -5,14 +5,14 @@ backpropagation and calls the optimizer `opt`.
 Takes a callback as keyword argument `cb`. For example, this will print "training"
 every 10 seconds:
 ```julia
-DiffEqFlux.sciml_train!(loss, params, data, opt,
+DiffEqFlux.sciml_train(loss, params, data, opt,
             cb = throttle(() -> println("training"), 10))
 ```
 The callback can call `Flux.stop()` to interrupt the training loop.
 Multiple optimisers and callbacks can be passed to `opt` and `cb` as arrays.
 """
-function sciml_train!(loss, θ, opt; cb = (args...) -> (), maxiters)
-  _θ = copy(θ)
+function sciml_train(loss, _θ, opt; cb = (args...) -> (false), maxiters)
+  θ = copy(_θ)
   ps = Flux.params(θ)
   data = Iterators.repeated((), maxiters)
   t0 = time()
@@ -26,8 +26,10 @@ function sciml_train!(loss, θ, opt; cb = (args...) -> (), maxiters)
     end
     Flux.Optimise.update!(opt, ps, gs)
     cb_call = cb(θ,x...)
-    if typeof(cb_call) == Bool && cb_call
-        break
+    if !(typeof(cb_call) <: Bool)
+      error("The callback should return a boolean `halt` for whether to stop the optimization process. Please see the sciml_train documentation for information.")
+    elseif cb_call
+      break
     end
   end
   _time = time()
@@ -63,10 +65,17 @@ end
 decompose_trace(trace::Optim.OptimizationTrace) = last(trace)
 decompose_trace(trace) = trace
 
-function sciml_train!(loss, θ, opt::Optim.AbstractOptimizer;
-                      cb = (args...) -> (), maxiters = 0, kwargs...)
+function sciml_train(loss, θ, opt::Optim.AbstractOptimizer;
+                      cb = (args...) -> (false), maxiters = 0, kwargs...)
   local x
-  _cb(trace) = cb(decompose_trace(trace).metadata["x"],x...)
+  function _cb(trace)
+    cb_call = cb(decompose_trace(trace).metadata["x"],x...)
+    if !(typeof(cb_call) <: Bool)
+      error("The callback should return a boolean `halt` for whether to stop the optimization process. Please see the sciml_train documentation for information.")
+    end
+    cb_call
+  end
+
   function optim_loss(θ)
     x = loss(θ)
     first(x)
