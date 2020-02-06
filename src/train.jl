@@ -64,7 +64,7 @@ decompose_trace(trace::Optim.OptimizationTrace) = last(trace)
 decompose_trace(trace) = trace
 
 function sciml_train!(loss, θ, opt::Optim.AbstractOptimizer;
-                      cb = (args...) -> (), maxiters = 0, f_tol = 0.0)
+                      cb = (args...) -> (), maxiters = 0, kwargs...)
   local x
   _cb(trace) = cb(decompose_trace(trace).metadata["x"],x...)
   function optim_loss(θ)
@@ -78,7 +78,7 @@ function sciml_train!(loss, θ, opt::Optim.AbstractOptimizer;
   end
   res = optimize(optim_loss, optim_loss_gradient!, θ, opt,
            Optim.Options(extended_trace=true,callback = _cb,
-                         f_calls_limit = maxiters, f_tol = f_tol))
+                         f_calls_limit = maxiters; kwargs...))
   θ .= res.minimizer
   return res
 end
