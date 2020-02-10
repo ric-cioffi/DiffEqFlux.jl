@@ -66,7 +66,7 @@ decompose_trace(trace::Optim.OptimizationTrace) = last(trace)
 decompose_trace(trace) = trace
 
 function sciml_train(loss, θ, opt::Optim.AbstractOptimizer;
-                      cb = (args...) -> (false), maxiters = 0)
+                      cb = (args...) -> (false), maxiters = 0, kwargs...)
   local x
   function _cb(trace)
     cb_call = cb(decompose_trace(trace).metadata["x"],x...)
@@ -85,7 +85,9 @@ function sciml_train(loss, θ, opt::Optim.AbstractOptimizer;
     g .= Flux.Zygote.gradient(optim_loss,θ)[1]
     nothing
   end
-  optimize(optim_loss, optim_loss_gradient!, θ, opt,
+  res = optimize(optim_loss, optim_loss_gradient!, θ, opt,
            Optim.Options(extended_trace=true,callback = _cb,
-                         f_calls_limit = maxiters))
+                         f_calls_limit = maxiters; kwargs...))
+  θ .= res.minimizer
+  return res
 end
