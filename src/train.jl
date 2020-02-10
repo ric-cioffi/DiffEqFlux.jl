@@ -85,9 +85,7 @@ function sciml_train(loss, θ, opt::Optim.AbstractOptimizer;
     g .= Flux.Zygote.gradient(optim_loss,θ)[1]
     nothing
   end
-  res = optimize(optim_loss, optim_loss_gradient!, θ, opt,
+  optimize(optim_loss, optim_loss_gradient!, θ, opt,
            Optim.Options(extended_trace=true,callback = _cb,
                          f_calls_limit = maxiters; kwargs...))
-  θ .= res.minimizer
-  return res
 end
